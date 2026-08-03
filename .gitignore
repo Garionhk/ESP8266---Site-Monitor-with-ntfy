@@ -1,0 +1,25 @@
+# Local configuration — Wi-Fi password and private ntfy topic names.
+# Copy SiteCheck/config.sample.h to SiteCheck/config.h and edit that instead.
+SiteCheck/config.h
+
+# Build output
+build/
+.build/
+*.bin
+*.elf
+*.map
+*.hex
+*.d
+
+# arduino-cli / IDE
+.arduinoIDE/
+.vscode/
+*.code-workspace
+
+# macOS
+.DS_Store
+._*
+
+# Editors
+*.swp
+*~
