@@ -1,8 +1,15 @@
 // commands.ino — the ADD / REMOVE / STATUS protocol read off the command topic.
 //
-//   ADD|Name1|target1;Name2|target2;...
-//   REMOVE|Name1;Name2;...
-//   STATUS
+//   <passphrase> ADD|Name1|target1;Name2|target2;...
+//   <passphrase> REMOVE|Name1;Name2;...
+//   <passphrase> STATUS
+//   <passphrase> FACTORYRESET
+//
+// The passphrase is matched case-insensitively so phone auto-capitalisation
+// doesn't lock you out, and a message without it is ignored silently. ADD,
+// REMOVE and FACTORYRESET ALWAYS require one: on a config from before the
+// passphrase existed, STATUS still works ungated but nothing can be changed —
+// ntfy.sh topics are public, so an open topic stays read-only.
 
 #include "common.h"
 
@@ -61,6 +68,10 @@ static void appendList(String &dst, const String &item) {
   if (dst.length()) dst += F(", ");
   dst += item;
 }
+
+static bool s_restartPending = false;
+
+bool cmdRestartPending() { return s_restartPending; }
 
 // ------------------------------------------------------------------- ADD ---
 static void cmdAdd(const String &args, String &reply) {
@@ -176,6 +187,23 @@ void handleCommand(const String &body, uint32_t msgTime) {
   msg.trim();
   if (msg.length() == 0) return;
 
+  // --- passphrase gate ----------------------------------------------------
+  String secret = g_settings.cmdSecret;
+  secret.trim();
+  if (secret.length()) {
+    int sp = 0;
+    while (sp < (int)msg.length() && msg[sp] != ' ' && msg[sp] != '\t') sp++;
+    if (!msg.substring(0, sp).equalsIgnoreCase(secret)) {
+      // Not logged with its text: a near-miss would put the passphrase in the
+      // serial log.
+      Serial.println(F("[cmd] ignored: missing or wrong passphrase"));
+      return;
+    }
+    msg = msg.substring(sp);
+    msg.trim();
+    if (msg.length() == 0) return;
+  }
+
   // The verb ends at the first '|' OR the first space, whichever comes first,
   // so both "ADD|Name|target" and the more natural "ADD Name|target" work.
   // Splitting on '|' alone read "ADD FileServer | 1.2.3.4" as the verb
@@ -202,17 +230,39 @@ void handleCommand(const String &body, uint32_t msgTime) {
   Serial.printf("[cmd] %s\n", msg.c_str());
 
   String reply;
-  if (verb == "ADD") {
+  if (!secret.length() && (verb == "ADD" || verb == "REMOVE" || verb == "DEL" ||
+                           verb == "DELETE" || verb == "FACTORYRESET")) {
+    reply = F("Set a command passphrase on the settings page before changing "
+              "hosts or using FACTORYRESET.\nSettings: ");
+    reply += settingsUrl();
+    ntfyPublish(reply, "Passphrase required", "lock", 3);
+  } else if (verb == "ADD") {
     cmdAdd(args, reply);
     ntfyPublish(reply, "ADD", "heavy_plus_sign", 2);
   } else if (verb == "REMOVE" || verb == "DEL" || verb == "DELETE") {
     cmdRemove(args, reply);
     ntfyPublish(reply, "REMOVE", "heavy_minus_sign", 2);
   } else if (verb == "STATUS") {
-    ntfyPublish(buildStatusReport(), "Status", "clipboard", 2);
+    // The settings address rides along here so it is always retrievable from
+    // the phone, without needing serial or the last boot message.
+    String rep = buildStatusReport();
+    rep += F("\n");
+    rep += settingsUrl();
+    ntfyPublish(rep, "Status", "clipboard", 2);
+  } else if (verb == "FACTORYRESET") {
+    // The config in RAM is untouched, so the reply below still reaches the
+    // topic. The caller restarts once the poll cursor is saved.
+    settingsErase();
+    s_restartPending = true;
+    reply = F("Settings cleared (monitored hosts kept). Rebooting into setup "
+              "mode — join the \"");
+    reply += webconfigApSsid();
+    reply += F("\" Wi-Fi to reconfigure.");
+    ntfyPublish(reply, "Factory reset", "warning", 4);
   } else {
     reply = "Unknown command: " + verb +
-            "\nExpected ADD|Name|target;... , REMOVE|Name;... or STATUS";
+            "\nExpected ADD|Name|target;... , REMOVE|Name;... , STATUS or "
+            "FACTORYRESET";
     ntfyPublish(reply, "Bad command", "warning", 3);
   }
 }

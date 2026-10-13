@@ -88,56 +88,82 @@ uint8_t checkHost(const Host &h) {
   return (h.type == TYPE_PING) ? checkPing(h) : checkWeb(h);
 }
 
-// ------------------------------------------------------------- the loop ----
-void runCheckLoop() {
+// ------------------------------------------------------------- the pass ----
+// A pass used to be one blocking for-loop, which froze the web UI for its whole
+// duration — up to ~8 minutes with 30 slow hosts. It is now cooperative: each
+// checkTick() handles exactly one host and returns, so loop() can service the
+// web server in between. Still strictly one socket at a time; each host's
+// client is opened and destroyed inside its own tick.
+
+static bool    passActive  = false;
+static uint8_t passIndex   = 0;
+static bool    passChanged = false;
+
+bool checkPassActive() { return passActive; }
+
+void checkStartPass() {
   if (hostCount == 0) {
     Serial.println(F("[check] no hosts configured"));
     return;
   }
-
+  passActive  = true;
+  passIndex   = 0;
+  passChanged = false;
   Serial.printf("[check] starting pass, heap=%u\n", ESP.getFreeHeap());
-  bool changed = false;
+}
 
-  for (uint8_t i = 0; i < hostCount; i++) {
-    Host &h = hosts[i];
-    uint8_t result = checkHost(h);
-    yield();
-
-    if (result == STATE_UNKNOWN) continue;  // unsupported check, leave state
-
-    if (result != h.state) {
-      uint8_t previous = h.state;
-      h.state      = result;
-      h.lastChange = (uint32_t)time(nullptr);
-      changed      = true;
-
-      String body = String(h.name) + " (" + h.target + ") is " +
-                    (result == STATE_UP ? "UP" : "DOWN");
-
-      if (previous == STATE_UNKNOWN) {
-        // First result after a boot or an ADD: report only the bad news.
-        if (result == STATE_DOWN) {
-          ntfyPublish(body, (String("DOWN: ") + h.name).c_str(),
-                      "rotating_light", 4);
-        }
-      } else if (result == STATE_DOWN) {
-        ntfyPublish(body, (String("DOWN: ") + h.name).c_str(),
-                    "rotating_light", 4);
-      } else {
-        ntfyPublish(body, (String("Recovered: ") + h.name).c_str(),
-                    "white_check_mark", 3);
-      }
-    }
-    // No change: stay quiet.
-
-    delay(INTER_CHECK_DELAY_MS);
-    yield();
-  }
-
+static void passFinish() {
+  passActive = false;
   Serial.printf("[check] pass done, heap=%u\n", ESP.getFreeHeap());
-
-  if (changed) {
+  if (passChanged) {
     hostsDirty = true;
     hostsSave();  // persist on transitions only
   }
+}
+
+bool checkTick() {
+  if (!passActive) return false;
+
+  // A REMOVE arriving mid-pass shrinks the list under us; the bound is
+  // re-tested every tick rather than cached for that reason.
+  if (passIndex >= hostCount) {
+    passFinish();
+    return false;
+  }
+
+  Host &h = hosts[passIndex++];
+  uint8_t result = checkHost(h);
+  yield();
+
+  if (result != STATE_UNKNOWN && result != h.state) {
+    uint8_t previous = h.state;
+    h.state      = result;
+    h.lastChange = (uint32_t)time(nullptr);
+    passChanged  = true;
+
+    String body = String(h.name) + " (" + h.target + ") is " +
+                  (result == STATE_UP ? "UP" : "DOWN");
+
+    if (previous == STATE_UNKNOWN) {
+      // First result after a boot or an ADD: report only the bad news.
+      if (result == STATE_DOWN) {
+        ntfyPublish(body, (String("DOWN: ") + h.name).c_str(),
+                    "rotating_light", 4);
+      }
+    } else if (result == STATE_DOWN) {
+      ntfyPublish(body, (String("DOWN: ") + h.name).c_str(),
+                  "rotating_light", 4);
+    } else {
+      ntfyPublish(body, (String("Recovered: ") + h.name).c_str(),
+                  "white_check_mark", 3);
+    }
+  }
+  // No change: stay quiet.
+
+  // Safe to pump the web server here: this host's client was destroyed when
+  // checkHost() returned, so no socket is open.
+  serviceDelay(INTER_CHECK_DELAY_MS);
+
+  if (passIndex >= hostCount) passFinish();
+  return passActive;
 }

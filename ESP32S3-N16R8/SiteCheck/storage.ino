@@ -14,27 +14,22 @@ static const char *HOSTS_TMP_PATH = "/hosts.tmp";
 static const char *STATE_PATH     = "/state.json";
 
 void storageBegin() {
-  if (!LittleFS.begin()) {
-    Serial.println(F("[fs] mount failed, formatting"));
-    LittleFS.format();
-    if (!LittleFS.begin()) {
-      Serial.println(F("[fs] mount failed again, running without persistence"));
-      return;
-    }
+  // true = format on mount failure (a fresh board's partition is blank).
+  if (!LittleFS.begin(true)) {
+    Serial.println(F("[fs] mount failed, running without persistence"));
+    return;
   }
 
-  FSInfo info;
-  if (LittleFS.info(info)) {
-    Serial.printf("[fs] mounted, %u/%u bytes used\n",
-                  (unsigned)info.usedBytes, (unsigned)info.totalBytes);
-  }
+  Serial.printf("[fs] mounted, %u/%u bytes used\n",
+                (unsigned)LittleFS.usedBytes(), (unsigned)LittleFS.totalBytes());
 }
 
 // ------------------------------------------------------------ hosts.json ---
 bool hostsLoad() {
   hostCount = 0;
 
-  File f = LittleFS.open(HOSTS_PATH, "r");
+  // exists() first: the ESP32 VFS logs an error for every missing-file open.
+  File f = LittleFS.exists(HOSTS_PATH) ? LittleFS.open(HOSTS_PATH, "r") : File();
   if (!f) {
     Serial.println(F("[fs] no hosts.json yet"));
     return false;
@@ -124,6 +119,7 @@ void hostsSaveIfDirty() {
 
 // ------------------------------------------------------------ state.json ---
 bool stateLoad() {
+  if (!LittleFS.exists(STATE_PATH)) return false;
   File f = LittleFS.open(STATE_PATH, "r");
   if (!f) return false;
 
@@ -145,9 +141,10 @@ bool stateLoad() {
   // topic for `since=<foreign id>` would give unpredictable results — so start
   // clean and let the NTP sync re-anchor the cursor to "now".
   const char *savedTopic = doc["topic"] | "";
-  if (strcmp(savedTopic, NTFY_TOPIC) != 0) {
+  if (g_settings.ntfyTopic != savedTopic) {
     Serial.printf("[fs] topic changed (%s -> %s), resetting command cursor\n",
-                  savedTopic[0] ? savedTopic : "(none)", NTFY_TOPIC);
+                  savedTopic[0] ? savedTopic : "(none)",
+                  g_settings.ntfyTopic.c_str());
     lastCmdId[0] = '\0';
     lastCmdTime  = 0;
   }
@@ -163,7 +160,8 @@ bool stateSave() {
 
   f.printf("{\"cmd_time\":%lu,\"cmd_id\":\"%s\",\"digest_day\":%d,"
            "\"topic\":\"%s\"}\n",
-           (unsigned long)lastCmdTime, lastCmdId, lastDigestDay, NTFY_TOPIC);
+           (unsigned long)lastCmdTime, lastCmdId, lastDigestDay,
+           g_settings.ntfyTopic.c_str());
   f.close();
   return true;
 }

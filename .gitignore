@@ -1,6 +1,5 @@
-# Local configuration — Wi-Fi password and private ntfy topic names.
-# Copy SiteCheck/config.sample.h to SiteCheck/config.h and edit that instead.
-SiteCheck/config.h
+# config.h no longer holds secrets — Wi-Fi credentials and the ntfy topic are
+# entered in the web UI and stored on the device, so config.h is committed.
 
 # Build output
 build/
@@ -23,3 +22,12 @@ build/
 # Editors
 *.swp
 *~
+
+# Release images are published from dist/
+!**/dist/*.bin
+
+# Local-only overrides / secrets (never commit)
+secrets.h
+*.local.h
+.env
+.claude/settings.local.json

@@ -14,7 +14,7 @@
 #include "common.h"
 
 static bool ntfyUsesTls() {
-  return strncmp(NTFY_BASE, "https://", 8) == 0;
+  return g_settings.ntfyBase.startsWith("https://");
 }
 
 // Caller owns the returned client.
@@ -33,7 +33,7 @@ static bool publishOnce(const String &body, const char *title,
   std::unique_ptr<WiFiClient> client(ntfyNewClient());
   HTTPClient http;
 
-  String url = String(NTFY_BASE) + "/" + NTFY_TOPIC;
+  String url = g_settings.ntfyBase + "/" + g_settings.ntfyTopic;
   if (!http.begin(*client, url)) {
     Serial.println(F("[ntfy] begin() failed"));
     return false;
@@ -44,15 +44,16 @@ static bool publishOnce(const String &body, const char *title,
   String tagList = (tags && tags[0]) ? String(tags) + "," + NTFY_DEVICE_TAG
                                      : String(NTFY_DEVICE_TAG);
 
-  http.setTimeout(HTTP_TIMEOUT_MS);
+  http.setTimeout(NTFY_TIMEOUT_MS);
   http.setReuse(false);
   http.setUserAgent(F("SiteCheck-ESP8266"));
   http.addHeader(F("Content-Type"), F("text/plain; charset=utf-8"));
   if (title && title[0]) http.addHeader(F("Title"), title);
   http.addHeader(F("Tags"), tagList);
   if (priority > 0)      http.addHeader(F("Priority"), String(priority));
-  if (strlen(NTFY_TOKEN)) http.addHeader(F("Authorization"),
-                                         String(F("Bearer ")) + NTFY_TOKEN);
+  if (g_settings.ntfyToken.length()) {
+    http.addHeader(F("Authorization"), String(F("Bearer ")) + g_settings.ntfyToken);
+  }
 
   int code = http.POST((uint8_t *)body.c_str(), body.length());
   http.end();
@@ -70,7 +71,9 @@ bool ntfyPublish(const String &body, const char *title, const char *tags,
 
   if (publishOnce(body, title, tags, priority)) return true;
 
-  delay(1000);  // one retry — transient TLS failures are common
+  // Both clients are destroyed by now, so pumping the web server here cannot
+  // overlap sockets.
+  serviceDelay(1000);  // one retry — transient TLS failures are common
   return publishOnce(body, title, tags, priority);
 }
 
@@ -83,15 +86,16 @@ static int fetchCommands(const String &since, PendingCmd *out, uint8_t &count,
   std::unique_ptr<WiFiClient> client(ntfyNewClient());
   HTTPClient http;
 
-  String url = String(NTFY_BASE) + "/" + NTFY_TOPIC +
+  String url = g_settings.ntfyBase + "/" + g_settings.ntfyTopic +
                "/json?poll=1&since=" + since;
   if (!http.begin(*client, url)) return -1;
 
-  http.setTimeout(HTTP_TIMEOUT_MS);
+  http.setTimeout(NTFY_TIMEOUT_MS);
   http.setReuse(false);
   http.setUserAgent(F("SiteCheck-ESP8266"));
-  if (strlen(NTFY_TOKEN)) http.addHeader(F("Authorization"),
-                                         String(F("Bearer ")) + NTFY_TOKEN);
+  if (g_settings.ntfyToken.length()) {
+    http.addHeader(F("Authorization"), String(F("Bearer ")) + g_settings.ntfyToken);
+  }
 
   int code = http.GET();
   if (code != HTTP_CODE_OK) {
@@ -114,7 +118,7 @@ static int fetchCommands(const String &since, PendingCmd *out, uint8_t &count,
 
   uint32_t start = millis();
   while ((http.connected() || stream->available()) &&
-         (uint32_t)(millis() - start) < HTTP_TIMEOUT_MS &&
+         (uint32_t)(millis() - start) < NTFY_TIMEOUT_MS &&
          count < MAX_PENDING_CMDS) {
     if (!stream->available()) {
       delay(10);
@@ -201,7 +205,7 @@ void ntfyPollCommands() {
     // worth rather than replaying everything still in the topic's retention.
     String since = lastCmdTime
                        ? String(lastCmdTime)
-                       : String(POLL_INTERVAL_MS / 60000UL + 1UL) + "m";
+                       : String(g_settings.pollIntervalSec / 60UL + 1UL) + "m";
     code = fetchCommands(since, pending, count, cursorId, cursorTime);
   }
 
@@ -227,6 +231,15 @@ void ntfyPollCommands() {
       strlcpy(lastCmdId, pending[i].id, sizeof(lastCmdId));
       stateSave();
       yield();
+
+      // FACTORYRESET: its reply is out and the cursor is past it, so it will
+      // not be replayed once the device is set up again.
+      if (cmdRestartPending()) {
+        Serial.println(F("[sys] factory reset — restarting into setup"));
+        hostsSaveIfDirty();
+        delay(500);
+        ESP.restart();
+      }
     }
   }
 
