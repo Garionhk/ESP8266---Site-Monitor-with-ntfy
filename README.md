@@ -169,12 +169,17 @@ The button pin (`BOOT_BUTTON_PIN`, GPIO0) is set in `config.h`.
 Physical access bypasses the admin password by design: anyone holding the board
 can reflash it anyway.
 
-**Devices set up before this firmware** keep working after a flash: Wi-Fi,
-topic, hosts and schedule are read as before. They have **no admin password or
-passphrase**, though, so the LAN settings page answers *Settings locked* and
-`ADD`/`REMOVE` reply *Passphrase required* until both are set. Use the FLASH
-button step once, fill in both (other blank password fields keep their stored
-values), and save.
+**Upgrading to v2.0.0.** Flash without erasing; what happens next depends on
+what the device was running:
+
+| Previous firmware | After flashing v2.0.0 |
+| --- | --- |
+| v1.0.0 | Nothing to do — every setting, host and the poll cursor is kept. |
+| Early web-setup builds (before v1.0.0, no passphrase or admin password) | Wi-Fi, topic, hosts and schedule are kept, but the LAN settings page answers *Settings locked* and `ADD`/`REMOVE` reply *Passphrase required*. Use the FLASH/BOOT button step once, set both (other blank password fields keep their stored values), and save. |
+| Original build with Wi-Fi and topic in `config.h` | Those settings were compiled in, not stored, so the device boots into the setup portal. Enter them there. `hosts.json` and `state.json` are in the same place, so monitored hosts and the poll cursor carry over. |
+
+Every ntfy command now needs the passphrase prefix — update any scripts or
+saved phone messages that send commands.
 
 **The settings page is plain HTTP.** The admin login crosses the LAN
 unencrypted — use it on a network you trust.
