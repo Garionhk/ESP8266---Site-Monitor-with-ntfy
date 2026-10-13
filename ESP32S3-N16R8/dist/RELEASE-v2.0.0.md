@@ -1,7 +1,7 @@
-# SiteCheck v1.0.0 — ESP32-S3 N16R8
+# SiteCheck v2.0.0 — ESP32-S3 N16R8
 
 First ESP32-S3 build of SiteCheck. Same firmware and features as the ESP8266
-v1.0.0 release, ported to the ESP32-S3 N16R8 (16 MB QIO flash, 8 MB OPI PSRAM),
+v2.0.0 release, ported to the ESP32-S3 N16R8 (16 MB QIO flash, 8 MB OPI PSRAM),
 e.g. ESP32-S3-DevKitC-1-N16R8 and its clones.
 
 ## Differences from the ESP8266 build
@@ -16,14 +16,14 @@ e.g. ESP32-S3-DevKitC-1-N16R8 and its clones.
 
 | File | Flash at | For |
 | --- | --- | --- |
-| `sitecheck-v1.0.0-esp32s3-n16r8-full.bin` | `0x0` | New board: bootloader + partition table + app |
-| `sitecheck-v1.0.0-esp32s3-n16r8-app.bin` | `0x10000` | Upgrading a board already running SiteCheck |
+| `sitecheck-v2.0.0-esp32s3-n16r8-full.bin` | `0x0` | New board: bootloader + partition table + app |
+| `sitecheck-v2.0.0-esp32s3-n16r8-app.bin` | `0x10000` | Upgrading a board already running SiteCheck |
 
 SHA-256 (also in `SHA256SUMS`):
 
 ```
-2940f0942c9bdccae6e63b407a45e4c15a345742416b2ed77bd93deb310ae70e  sitecheck-v1.0.0-esp32s3-n16r8-full.bin
-d31725161915b48dd0873ba05fbbf7415dd9a691935535e213942d911dd3acc2  sitecheck-v1.0.0-esp32s3-n16r8-app.bin
+fc3a24f6e2a4cb59135757d753b48d8d929edd1a1e39c7e91898cbddcc90eff7  sitecheck-v2.0.0-esp32s3-n16r8-full.bin
+2d39ac3c47769a22d1ddb2ff3deeb991af96203648081e9cb9032c83f8118dc0  sitecheck-v2.0.0-esp32s3-n16r8-app.bin
 ```
 
 New board — erase, then write at `0x0`:
@@ -33,13 +33,13 @@ esptool --chip esp32s3 --port <PORT> erase-flash
 ```
 
 ```bash
-esptool --chip esp32s3 --port <PORT> --baud 921600 write-flash 0x0 sitecheck-v1.0.0-esp32s3-n16r8-full.bin
+esptool --chip esp32s3 --port <PORT> --baud 921600 write-flash 0x0 sitecheck-v2.0.0-esp32s3-n16r8-full.bin
 ```
 
 Upgrade, keeping settings and hosts — app only, no erase:
 
 ```bash
-esptool --chip esp32s3 --port <PORT> --baud 921600 write-flash 0x10000 sitecheck-v1.0.0-esp32s3-n16r8-app.bin
+esptool --chip esp32s3 --port <PORT> --baud 921600 write-flash 0x10000 sitecheck-v2.0.0-esp32s3-n16r8-app.bin
 ```
 
 Full instructions: `../flash.md`.

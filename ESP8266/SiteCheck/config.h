@@ -67,6 +67,6 @@
 #define USE_PING                    1
 
 // ------------------------------------------------------------------ misc ----
-#define SITECHECK_VERSION           "1.0.0"
+#define SITECHECK_VERSION           "2.0.0"
 #define NOTIFY_ON_BOOT              1
 #define SERIAL_BAUD                 115200

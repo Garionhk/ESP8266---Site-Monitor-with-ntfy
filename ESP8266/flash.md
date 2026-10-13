@@ -57,7 +57,7 @@ arduino-cli compile --fqbn esp8266:esp8266:generic:eesz=1M64 --export-binaries E
 
 That leaves 64 KB for LittleFS, which is ample — the three JSON files are a few
 kilobytes. Name the outputs clearly when you publish them, e.g.
-`sitecheck-v1.0.0-esp8266-4m2m.bin` and `sitecheck-v1.0.0-esp8266-1m64.bin`.
+`sitecheck-v2.0.0-esp8266-4m2m.bin` and `sitecheck-v2.0.0-esp8266-1m64.bin`.
 
 ## 3. Confirm the binary carries no secrets
 
@@ -118,7 +118,7 @@ esptool --port /dev/cu.usbserial-0001 erase-flash
 ```
 
 ```bash
-esptool --port /dev/cu.usbserial-0001 --baud 460800 write-flash 0x0 sitecheck-v1.0.0-esp8266-4m2m.bin
+esptool --port /dev/cu.usbserial-0001 --baud 460800 write-flash 0x0 sitecheck-v2.0.0-esp8266-4m2m.bin
 ```
 
 Older esptool (v4 and earlier) uses underscores: `erase_flash`, `write_flash`.

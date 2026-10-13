@@ -48,11 +48,11 @@ written. Build the same image without the padding (~1.2 MB) with the esptool
 bundled in the core (paths for core 3.3.10 on macOS):
 
 ```bash
-~/Library/Arduino15/packages/esp32/tools/esptool_py/5.3.0/esptool --chip esp32s3 merge-bin -o dist/sitecheck-v1.0.0-esp32s3-n16r8-full.bin --flash-mode keep --flash-freq keep --flash-size keep 0x0 SiteCheck/build/esp32.esp32.esp32s3/SiteCheck.ino.bootloader.bin 0x8000 SiteCheck/build/esp32.esp32.esp32s3/SiteCheck.ino.partitions.bin 0xe000 ~/Library/Arduino15/packages/esp32/hardware/esp32/3.3.10/tools/partitions/boot_app0.bin 0x10000 SiteCheck/build/esp32.esp32.esp32s3/SiteCheck.ino.bin
+~/Library/Arduino15/packages/esp32/tools/esptool_py/5.3.0/esptool --chip esp32s3 merge-bin -o dist/sitecheck-v2.0.0-esp32s3-n16r8-full.bin --flash-mode keep --flash-freq keep --flash-size keep 0x0 SiteCheck/build/esp32.esp32.esp32s3/SiteCheck.ino.bootloader.bin 0x8000 SiteCheck/build/esp32.esp32.esp32s3/SiteCheck.ino.partitions.bin 0xe000 ~/Library/Arduino15/packages/esp32/hardware/esp32/3.3.10/tools/partitions/boot_app0.bin 0x10000 SiteCheck/build/esp32.esp32.esp32s3/SiteCheck.ino.bin
 ```
 
 Run it from `ESP32S3-N16R8/`, and copy `SiteCheck.ino.bin` to
-`dist/sitecheck-v1.0.0-esp32s3-n16r8-app.bin`. The result is byte-identical to
+`dist/sitecheck-v2.0.0-esp32s3-n16r8-app.bin`. The result is byte-identical to
 the start of `SiteCheck.ino.merged.bin`.
 
 ### Flash layout
@@ -129,7 +129,7 @@ esptool --chip esp32s3 --port /dev/cu.usbserial-0001 erase-flash
 ```
 
 ```bash
-esptool --chip esp32s3 --port /dev/cu.usbserial-0001 --baud 921600 write-flash 0x0 sitecheck-v1.0.0-esp32s3-n16r8-full.bin
+esptool --chip esp32s3 --port /dev/cu.usbserial-0001 --baud 921600 write-flash 0x0 sitecheck-v2.0.0-esp32s3-n16r8-full.bin
 ```
 
 Older esptool (v4 and earlier) uses underscores: `erase_flash`, `write_flash`.
@@ -142,7 +142,7 @@ the core's 16 MB `SiteCheck.ino.merged.bin` for this: its padding overwrites
 the LittleFS partition.)
 
 ```bash
-esptool --chip esp32s3 --port /dev/cu.usbserial-0001 --baud 921600 write-flash 0x10000 sitecheck-v1.0.0-esp32s3-n16r8-app.bin
+esptool --chip esp32s3 --port /dev/cu.usbserial-0001 --baud 921600 write-flash 0x10000 sitecheck-v2.0.0-esp32s3-n16r8-app.bin
 ```
 
 ### First boot

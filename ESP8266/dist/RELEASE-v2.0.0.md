@@ -1,6 +1,6 @@
-# SiteCheck v1.0.0 — ESP8266
+# SiteCheck v2.0.0 — ESP8266
 
-First release of SiteCheck as a shareable binary.
+Version 2.0.0 of SiteCheck as a shareable binary — web-based setup, no credentials in the firmware.
 
 ## Highlights
 
@@ -24,14 +24,14 @@ First release of SiteCheck as a shareable binary.
 
 | File | For |
 | --- | --- |
-| `sitecheck-v1.0.0-esp8266-4m2m.bin` | 4 MB boards — NodeMCU v2, Wemos D1 mini, most ESP-12 modules (2 MB LittleFS) |
-| `sitecheck-v1.0.0-esp8266-1m64.bin` | 1 MB modules — ESP-01, older Sonoff (64 KB LittleFS) |
+| `sitecheck-v2.0.0-esp8266-4m2m.bin` | 4 MB boards — NodeMCU v2, Wemos D1 mini, most ESP-12 modules (2 MB LittleFS) |
+| `sitecheck-v2.0.0-esp8266-1m64.bin` | 1 MB modules — ESP-01, older Sonoff (64 KB LittleFS) |
 
 SHA-256 (also in `SHA256SUMS`):
 
 ```
-fd7c20f7c2fb41f32228edec7327e97af25b8e0b97285cc960379c7f1e32b1f4  sitecheck-v1.0.0-esp8266-4m2m.bin
-f7648c88f493a70a39b1a3ae1bd8b14cdc84ef9523236d53a4c54321d252bc07  sitecheck-v1.0.0-esp8266-1m64.bin
+42008c9cd555289060d1af8d6413df8b4a9bd1b68581e1cac748c48bddedca5a  sitecheck-v2.0.0-esp8266-4m2m.bin
+d466f2c07ef08f4dc550c157d264e4debd60041f422b1dc62bc8d73a3384785b  sitecheck-v2.0.0-esp8266-1m64.bin
 ```
 
 New board — erase, then write at `0x0`:
@@ -41,7 +41,7 @@ esptool --port <PORT> erase-flash
 ```
 
 ```bash
-esptool --port <PORT> --baud 460800 write-flash 0x0 sitecheck-v1.0.0-esp8266-4m2m.bin
+esptool --port <PORT> --baud 460800 write-flash 0x0 sitecheck-v2.0.0-esp8266-4m2m.bin
 ```
 
 Full instructions: `flash.md`.
