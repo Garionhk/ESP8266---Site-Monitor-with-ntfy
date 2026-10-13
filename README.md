@@ -4,6 +4,28 @@ Implementation of [plan.md](plan.md). It is controlled day to day through ntfy �
 no display, no buttons. A small web UI handles first-time setup and settings,
 and stays available on the LAN.
 
+**Current version: v2.0.0** — [release notes and downloads](https://github.com/Garionhk/ESP8266---Site-Monitor-with-ntfy/releases/tag/v2.0.0).
+
+## Download
+
+Prebuilt firmware is attached to each
+[GitHub release](https://github.com/Garionhk/ESP8266---Site-Monitor-with-ntfy/releases)
+and kept in each variant's `dist/` folder. No Arduino toolchain is needed to
+flash these — only [esptool](https://github.com/espressif/esptool).
+
+| File | Board | Write at |
+| --- | --- | --- |
+| `sitecheck-v2.0.0-esp8266-4m2m.bin` | 4 MB ESP8266 — NodeMCU v2, Wemos D1 mini, most ESP-12 modules | `0x0` |
+| `sitecheck-v2.0.0-esp8266-1m64.bin` | 1 MB ESP8266 — ESP-01, older Sonoff | `0x0` |
+| `sitecheck-v2.0.0-esp32s3-n16r8-full.bin` | ESP32-S3 N16R8, new board (bootloader + partitions + app) | `0x0` |
+| `sitecheck-v2.0.0-esp32s3-n16r8-app.bin` | ESP32-S3 N16R8 already running SiteCheck | `0x10000` |
+
+Verify downloads against `SHA256SUMS`, then follow the flashing steps in
+[ESP8266/flash.md](ESP8266/flash.md) or
+[ESP32S3-N16R8/flash.md](ESP32S3-N16R8/flash.md). To upgrade a device that is
+already set up, write the new image **without erasing** — configuration, hosts
+and the poll cursor are kept.
+
 ## Variants
 
 The same firmware is maintained for two boards. Each folder is a self-contained
@@ -344,3 +366,14 @@ re-advertises mDNS. `STATUS` always reports the current address too.
   back via the FLASH/BOOT button at boot, `FACTORYRESET`, or erasing the filesystem.
 - The device reboots itself daily at the configured reboot hour as insurance against heap
   fragmentation, and logs free heap to Serial on every check pass.
+
+## Versioning
+
+The firmware version is `SITECHECK_VERSION` in each variant's `config.h`. It is
+printed on serial at boot and included in the ntfy boot message, so you can
+check what a device is running without a cable. Both variants always share the
+same version number.
+
+## License
+
+Apache License 2.0 — see [LICENSE-2.0.txt](LICENSE-2.0.txt).
